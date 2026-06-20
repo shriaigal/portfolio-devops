@@ -25,20 +25,37 @@ stages {
 
     stage('Tag Image') {
         steps {
-            sh 'docker tag portfolio:v1 880252975320.dkr.ecr.ap-south-1.amazonaws.com/portfolio:v1'
+            sh 'docker tag portfolio:v1 $ECR_REPO:v1'
         }
     }
 
     stage('Push Image') {
         steps {
-            sh 'docker push 880252975320.dkr.ecr.ap-south-1.amazonaws.com/portfolio:v1'
+            sh 'docker push $ECR_REPO:v1'
+        }
+    }
+
+    stage('Deploy') {
+        steps {
+            sh '''
+            docker pull $ECR_REPO:v1
+
+            docker stop portfolio || true
+            docker rm portfolio || true
+
+            docker run -d \
+            --restart unless-stopped \
+            -p 80:80 \
+            --name portfolio \
+            $ECR_REPO:v1
+            '''
         }
     }
 }
 
 post {
     success {
-        echo 'Docker Image Successfully Pushed to ECR'
+        echo 'Application Successfully Deployed'
     }
 
     failure {
